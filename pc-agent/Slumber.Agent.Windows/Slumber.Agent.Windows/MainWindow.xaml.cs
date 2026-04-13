@@ -10,7 +10,7 @@ namespace Slumber.Agent.Windows
 
         private const int KEYEVENTF_EXTENDEDKEY = 0x1;
         private const int KEYEVENTF_KEYUP = 0x2;
-        private const byte VK_MEDIA_PLAY_PAUSE = 0xB3;
+        private const byte VK_MEDIA_PAUSE = 0xB2;
 
         public MainWindow()
         {
@@ -22,13 +22,21 @@ namespace Slumber.Agent.Windows
             TogglePlayPause();
         }
 
+        private void ShowOverlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            var overlay = new OverlayWindow();
+            overlay.ShowDialog();
+
+            if (overlay.ShouldPause)
+            {
+                TogglePlayPause();
+            }
+        }
+
         private void TogglePlayPause()
         {
-            // Key down
-            keybd_event(VK_MEDIA_PLAY_PAUSE, 0, KEYEVENTF_EXTENDEDKEY, 0);
-
-            // Key up
-            keybd_event(VK_MEDIA_PLAY_PAUSE, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+            keybd_event(VK_MEDIA_PAUSE, 0, KEYEVENTF_EXTENDEDKEY, 0);
+            keybd_event(VK_MEDIA_PAUSE, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
         }
     }
 }

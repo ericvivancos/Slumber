@@ -9,15 +9,22 @@
     <Grid>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock Text="Slumber PC Agent"
-                       FontSize="24"
-                       Margin="0,0,0,20"
-                       HorizontalAlignment="Center"/>
+               FontSize="24"
+               Margin="0,0,0,20"
+               HorizontalAlignment="Center"/>
 
             <Button Name="PauseButton"
-                    Content="Pause / Play"
-                    Width="200"
-                    Height="50"
-                    Click="PauseButton_Click"/>
+            Content="Pause / Play"
+            Width="200"
+            Height="50"
+            Margin="0,0,0,12"
+            Click="PauseButton_Click"/>
+
+            <Button Name="ShowOverlayButton"
+            Content="Mostrar overlay"
+            Width="200"
+            Height="50"
+            Click="ShowOverlayButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>
