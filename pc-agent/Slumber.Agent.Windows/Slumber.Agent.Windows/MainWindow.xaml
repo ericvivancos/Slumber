@@ -5,8 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Slumber.Agent.Windows"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Slumber PC Agent" Height="300" Width="500">
     <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="Slumber PC Agent"
+                       FontSize="24"
+                       Margin="0,0,0,20"
+                       HorizontalAlignment="Center"/>
 
+            <Button Name="PauseButton"
+                    Content="Pause / Play"
+                    Width="200"
+                    Height="50"
+                    Click="PauseButton_Click"/>
+        </StackPanel>
     </Grid>
 </Window>
