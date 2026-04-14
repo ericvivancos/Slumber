@@ -1,9 +1,11 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
 using Slumber.Agent.Windows.Services;
-
+using Forms = System.Windows.Forms;
 
 namespace Slumber.Agent.Windows
 {
@@ -16,20 +18,25 @@ namespace Slumber.Agent.Windows
         private const int KEYEVENTF_KEYUP = 0x2;
         private const byte VK_MEDIA_PAUSE = 0xB2;
 
+        private Forms.NotifyIcon? _notifyIcon;
+
         private readonly InactivityService _inactivityService;
         private readonly DispatcherTimer _monitoringTimer;
         private readonly MediaSessionService _mediaSessionService = new MediaSessionService();
 
-        private readonly TimeSpan _idleThreshold = TimeSpan.FromSeconds(20); // luego lo subimos
-        //private readonly TimeSpan _promptCooldown = TimeSpan.FromMinutes(5);
+        private readonly TimeSpan _idleThreshold = TimeSpan.FromSeconds(20);
         private readonly TimeSpan _promptCooldown = TimeSpan.FromSeconds(15);
 
         private bool _isOverlayOpen = false;
+        private bool _isExiting = false;
         private DateTime _lastPromptDismissedAt = DateTime.MinValue;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            InitializeTrayIcon();
+            Loaded += MainWindow_Loaded;
 
             _inactivityService = new InactivityService();
 
@@ -40,6 +47,73 @@ namespace Slumber.Agent.Windows
 
             _monitoringTimer.Tick += MonitoringTimer_Tick;
             _monitoringTimer.Start();
+        }
+
+        private void InitializeTrayIcon()
+        {
+            _notifyIcon = new Forms.NotifyIcon
+            {
+                Icon = SystemIcons.Application,
+                Visible = true,
+                Text = "Slumber - Monitoring"
+            };
+
+            var contextMenu = new Forms.ContextMenuStrip();
+            contextMenu.Items.Add("Abrir", null, (_, _) => ShowMainWindow());
+            contextMenu.Items.Add("Salir", null, (_, _) => ExitApplication());
+
+            _notifyIcon.ContextMenuStrip = contextMenu;
+            _notifyIcon.DoubleClick += (_, _) => ShowMainWindow();
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            Hide();
+        }
+
+        private void ShowMainWindow()
+        {
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private void ExitApplication()
+        {
+            _isExiting = true;
+
+            if (_notifyIcon != null)
+            {
+                _notifyIcon.Visible = false;
+                _notifyIcon.Dispose();
+                _notifyIcon = null;
+            }
+
+            Application.Current.Shutdown();
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            if (!_isExiting)
+            {
+                e.Cancel = true;
+                Hide();
+                return;
+            }
+
+            base.OnClosing(e);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            if (_notifyIcon != null)
+            {
+                _notifyIcon.Visible = false;
+                _notifyIcon.Dispose();
+                _notifyIcon = null;
+            }
+
+            base.OnClosed(e);
         }
 
         private void PauseButton_Click(object sender, RoutedEventArgs e)
@@ -64,7 +138,6 @@ namespace Slumber.Agent.Windows
                 return;
             }
 
-            // 👇 NUEVO
             if (!_mediaSessionService.IsAudioPlaying())
             {
                 return;
@@ -89,7 +162,7 @@ namespace Slumber.Agent.Windows
             }
             else
             {
-                _lastPromptDismissedAt = DateTime.Now; // 👈 ESTO ES CLAVE
+                _lastPromptDismissedAt = DateTime.Now;
             }
 
             _isOverlayOpen = false;
