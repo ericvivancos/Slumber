@@ -17,5 +17,10 @@
         /// después de que el usuario lo cancele.
         /// </summary>
         public int PromptCooldownSeconds { get; set; } = 300;
+
+        /// <summary>
+        /// Indica si Slumber debe iniciarse automáticamente con Windows.
+        /// </summary>
+        public bool StartWithWindows { get; set; } = false;
     }
 }

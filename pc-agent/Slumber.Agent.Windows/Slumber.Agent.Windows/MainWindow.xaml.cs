@@ -24,6 +24,7 @@ namespace Slumber.Agent.Windows
         private readonly InactivityService _inactivityService;
         private readonly DispatcherTimer _monitoringTimer;
         private readonly MediaSessionService _mediaSessionService = new MediaSessionService();
+        private readonly StartupService _startupService;
 
         private readonly SettingsService _settingsService;
         private AppSettings _settings;
@@ -40,8 +41,8 @@ namespace Slumber.Agent.Windows
             IdleThresholdTextBox.Text = _settings.IdleThresholdSeconds.ToString();
             OverlayCountdownTextBox.Text = _settings.OverlayCountdownSeconds.ToString();
             PromptCooldownTextBox.Text = _settings.PromptCooldownSeconds.ToString();
+            StartWithWindowsCheckBox.IsChecked = _settings.StartWithWindows;
         }
-
 
 
         public MainWindow()
@@ -53,6 +54,7 @@ namespace Slumber.Agent.Windows
 
             _settingsService = new SettingsService();
             _settings = _settingsService.LoadSettings();
+            _startupService = new StartupService();
 
             _idleThreshold = TimeSpan.FromSeconds(_settings.IdleThresholdSeconds);
             _promptCooldown = TimeSpan.FromSeconds(_settings.PromptCooldownSeconds);
@@ -217,8 +219,10 @@ namespace Slumber.Agent.Windows
             _settings.IdleThresholdSeconds = idleThresholdSeconds;
             _settings.OverlayCountdownSeconds = overlayCountdownSeconds;
             _settings.PromptCooldownSeconds = promptCooldownSeconds;
+            _settings.StartWithWindows = StartWithWindowsCheckBox.IsChecked == true;
 
             _settingsService.SaveSettings(_settings);
+            _startupService.SetEnabled(_settings.StartWithWindows);
 
             _idleThreshold = TimeSpan.FromSeconds(_settings.IdleThresholdSeconds);
             _promptCooldown = TimeSpan.FromSeconds(_settings.PromptCooldownSeconds);

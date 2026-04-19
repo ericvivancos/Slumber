@@ -6,80 +6,86 @@
         xmlns:local="clr-namespace:Slumber.Agent.Windows"
         mc:Ignorable="d"
         Title="Slumber PC Agent"
-        Height="560"
+        Height="660"
         Width="760"
-        MinHeight="560"
+        MinHeight="660"
         MinWidth="760">
+
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="24">
-            <StackPanel>
-                <TextBlock Text="Slumber PC Agent"
-                           FontSize="28"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,24"/>
+            <GroupBox Header="Configuración de Slumber">
+                <StackPanel Margin="16">
 
-                
-
-                <GroupBox Header="Configuración de inactividad">
-                    <StackPanel Margin="16">
-
-                        <!-- 1 -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Tiempo de inactividad antes del aviso"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="Define cuánto tiempo puede pasar sin actividad (ratón o teclado) antes de que Slumber muestre el aviso de “¿Sigues despierto?”."
-                                       TextWrapping="Wrap"
-                                       Foreground="Gray"
-                                       Margin="0,6,0,8"/>
-                            <TextBox x:Name="IdleThresholdTextBox"
-                                     Width="120"
-                                     Height="30"/>
-                        </StackPanel>
-
-                        <!-- 2 -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Tiempo de espera antes de pausar"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="Tiempo que Slumber espera desde que aparece el aviso hasta pausar la reproducción automáticamente si no hay respuesta."
-                                       TextWrapping="Wrap"
-                                       Foreground="Gray"
-                                       Margin="0,6,0,8"/>
-                            <TextBox x:Name="OverlayCountdownTextBox"
-                                     Width="120"
-                                     Height="30"/>
-                        </StackPanel>
-
-                        <!-- 3 -->
-                        <StackPanel Margin="0,0,0,20">
-                            <TextBlock Text="Tiempo de espera tras cancelar el aviso"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="Define cuánto tiempo espera Slumber antes de volver a mostrar el aviso después de que el usuario indique que sigue despierto."
-                                       TextWrapping="Wrap"
-                                       Foreground="Gray"
-                                       Margin="0,6,0,8"/>
-                            <TextBox x:Name="PromptCooldownTextBox"
-                                     Width="120"
-                                     Height="30"/>
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="Guardar configuración"
-                                    Width="180"
-                                    Height="40"
-                                    Margin="0,0,12,0"
-                                    Click="SaveSettingsButton_Click"/>
-
-                            <TextBlock x:Name="SettingsStatusTextBlock"
-                                       VerticalAlignment="Center"
-                                       Foreground="Green"
-                                       FontWeight="SemiBold"/>
-                        </StackPanel>
+                    <!-- 1 -->
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="Tiempo de inactividad antes del aviso"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="Define cuánto tiempo puede pasar sin actividad (ratón o teclado) antes de que Slumber muestre el aviso de “¿Sigues despierto?”."
+                                   TextWrapping="Wrap"
+                                   Foreground="Gray"
+                                   Margin="0,6,0,8"/>
+                        <TextBox x:Name="IdleThresholdTextBox"
+                                 Width="120"
+                                 Height="30"/>
                     </StackPanel>
-                </GroupBox>
-            </StackPanel>
+
+                    <!-- 2 -->
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="Tiempo de espera antes de pausar"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="Tiempo que Slumber espera desde que aparece el aviso hasta pausar la reproducción automáticamente si no hay respuesta."
+                                   TextWrapping="Wrap"
+                                   Foreground="Gray"
+                                   Margin="0,6,0,8"/>
+                        <TextBox x:Name="OverlayCountdownTextBox"
+                                 Width="120"
+                                 Height="30"/>
+                    </StackPanel>
+
+                    <!-- 3 -->
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="Tiempo de espera tras cancelar el aviso"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="Define cuánto tiempo espera Slumber antes de volver a mostrar el aviso después de que el usuario indique que sigue despierto."
+                                   TextWrapping="Wrap"
+                                   Foreground="Gray"
+                                   Margin="0,6,0,8"/>
+                        <TextBox x:Name="PromptCooldownTextBox"
+                                 Width="120"
+                                 Height="30"/>
+                    </StackPanel>
+
+                    <!-- 4 -->
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="Iniciar Slumber automáticamente con Windows"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"/>
+                        <TextBlock Text="Permite que Slumber se ejecute automáticamente al iniciar sesión en Windows, quedando activo en segundo plano sin necesidad de abrirlo manualmente."
+                                   TextWrapping="Wrap"
+                                   Foreground="Gray"
+                                   Margin="0,6,0,8"/>
+                        <CheckBox x:Name="StartWithWindowsCheckBox"
+                                  Content="Activar inicio automático con Windows"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Guardar configuración"
+                                Width="180"
+                                Height="40"
+                                Margin="0,0,12,0"
+                                Click="SaveSettingsButton_Click"/>
+
+                        <TextBlock x:Name="SettingsStatusTextBlock"
+                                   VerticalAlignment="Center"
+                                   Foreground="Green"
+                                   FontWeight="SemiBold"/>
+                    </StackPanel>
+
+                </StackPanel>
+            </GroupBox>
         </Grid>
     </ScrollViewer>
 </Window>
