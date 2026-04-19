@@ -10,13 +10,15 @@ namespace Slumber.Agent.Windows
         private readonly DispatcherTimer _countdownTimer;
         private readonly GlobalInputHookService _globalInputHookService;
 
-        private int _secondsRemaining = 15;
+        private int _secondsRemaining;
 
         public bool ShouldPause { get; private set; } = false;
 
-        public OverlayWindow()
+        public OverlayWindow(int countdownSeconds)
         {
             InitializeComponent();
+
+            _secondsRemaining = countdownSeconds;
 
             _countdownTimer = new DispatcherTimer
             {

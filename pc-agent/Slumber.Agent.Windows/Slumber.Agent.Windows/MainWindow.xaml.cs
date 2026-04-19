@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Slumber.Agent.Windows.Models;
+using Slumber.Agent.Windows.Services;
+using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
-using Slumber.Agent.Windows.Services;
 using Forms = System.Windows.Forms;
 
 namespace Slumber.Agent.Windows
@@ -24,12 +25,24 @@ namespace Slumber.Agent.Windows
         private readonly DispatcherTimer _monitoringTimer;
         private readonly MediaSessionService _mediaSessionService = new MediaSessionService();
 
-        private readonly TimeSpan _idleThreshold = TimeSpan.FromSeconds(20);
-        private readonly TimeSpan _promptCooldown = TimeSpan.FromSeconds(15);
+        private readonly SettingsService _settingsService;
+        private AppSettings _settings;
+
+        private TimeSpan _idleThreshold;
+        private TimeSpan _promptCooldown;
 
         private bool _isOverlayOpen = false;
         private bool _isExiting = false;
         private DateTime _lastPromptDismissedAt = DateTime.MinValue;
+
+        private void LoadSettingsIntoUi()
+        {
+            IdleThresholdTextBox.Text = _settings.IdleThresholdSeconds.ToString();
+            OverlayCountdownTextBox.Text = _settings.OverlayCountdownSeconds.ToString();
+            PromptCooldownTextBox.Text = _settings.PromptCooldownSeconds.ToString();
+        }
+
+
 
         public MainWindow()
         {
@@ -37,6 +50,14 @@ namespace Slumber.Agent.Windows
 
             InitializeTrayIcon();
             Loaded += MainWindow_Loaded;
+
+            _settingsService = new SettingsService();
+            _settings = _settingsService.LoadSettings();
+
+            _idleThreshold = TimeSpan.FromSeconds(_settings.IdleThresholdSeconds);
+            _promptCooldown = TimeSpan.FromSeconds(_settings.PromptCooldownSeconds);
+
+            LoadSettingsIntoUi();
 
             _inactivityService = new InactivityService();
 
@@ -48,7 +69,6 @@ namespace Slumber.Agent.Windows
             _monitoringTimer.Tick += MonitoringTimer_Tick;
             _monitoringTimer.Start();
         }
-
         private void InitializeTrayIcon()
         {
             _notifyIcon = new Forms.NotifyIcon
@@ -153,7 +173,7 @@ namespace Slumber.Agent.Windows
         {
             _isOverlayOpen = true;
 
-            var overlay = new OverlayWindow();
+            var overlay = new OverlayWindow(_settings.OverlayCountdownSeconds);
             overlay.ShowDialog();
 
             if (overlay.ShouldPause)
@@ -172,6 +192,38 @@ namespace Slumber.Agent.Windows
         {
             keybd_event(VK_MEDIA_PAUSE, 0, KEYEVENTF_EXTENDEDKEY, 0);
             keybd_event(VK_MEDIA_PAUSE, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+        }
+
+        private void SaveSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!int.TryParse(IdleThresholdTextBox.Text, out int idleThresholdSeconds) || idleThresholdSeconds <= 0)
+            {
+                MessageBox.Show("El tiempo de inactividad antes del aviso debe ser un número mayor que 0.", "Configuración inválida", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!int.TryParse(OverlayCountdownTextBox.Text, out int overlayCountdownSeconds) || overlayCountdownSeconds <= 0)
+            {
+                MessageBox.Show("El tiempo de espera antes de pausar debe ser un número mayor que 0.", "Configuración inválida", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!int.TryParse(PromptCooldownTextBox.Text, out int promptCooldownSeconds) || promptCooldownSeconds <= 0)
+            {
+                MessageBox.Show("El tiempo de espera tras cancelar el aviso debe ser un número mayor que 0.", "Configuración inválida", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            _settings.IdleThresholdSeconds = idleThresholdSeconds;
+            _settings.OverlayCountdownSeconds = overlayCountdownSeconds;
+            _settings.PromptCooldownSeconds = promptCooldownSeconds;
+
+            _settingsService.SaveSettings(_settings);
+
+            _idleThreshold = TimeSpan.FromSeconds(_settings.IdleThresholdSeconds);
+            _promptCooldown = TimeSpan.FromSeconds(_settings.PromptCooldownSeconds);
+
+            SettingsStatusTextBlock.Text = "Configuración guardada correctamente.";
         }
     }
 }
