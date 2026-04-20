@@ -42,7 +42,8 @@ enum class QuickActionType {
     RUN_SLEEP_CHECK,
     CONNECT_PC,
     OPEN_SETTINGS,
-    VIEW_HISTORY
+    VIEW_HISTORY,
+    DISCOVER_DEVICES
 }
 
 data class DeviceStatus(
@@ -78,6 +79,24 @@ data class RuleSetting(
     val description: String
 )
 
+data class SlumberServiceEndpoint(
+    val id: String,
+    val deviceName: String,
+    val host: String,
+    val port: Int,
+    val serviceVersion: String,
+    val capabilities: List<String>,
+    val availability: String,
+    val isLinked: Boolean
+)
+
+data class DeviceDiscoveryState(
+    val isScanning: Boolean,
+    val statusMessage: String,
+    val linkedDevice: SlumberServiceEndpoint?,
+    val discoveredDevices: List<SlumberServiceEndpoint>
+)
+
 data class MobileHubSnapshot(
     val mode: SlumberMode,
     val summary: String,
@@ -88,5 +107,6 @@ data class MobileHubSnapshot(
     val signals: List<SignalReading>,
     val quickActions: List<QuickAction>,
     val timeline: List<TimelineEvent>,
-    val rules: List<RuleSetting>
+    val rules: List<RuleSetting>,
+    val discovery: DeviceDiscoveryState
 )

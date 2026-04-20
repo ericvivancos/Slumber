@@ -3,7 +3,10 @@ using Slumber.Agent.Windows.Services;
 using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
@@ -25,6 +28,7 @@ namespace Slumber.Agent.Windows
         private readonly DispatcherTimer _monitoringTimer;
         private readonly MediaSessionService _mediaSessionService = new MediaSessionService();
         private readonly StartupService _startupService;
+        private readonly SlumberLanService _lanService;
 
         private readonly SettingsService _settingsService;
         private AppSettings _settings;
@@ -55,6 +59,7 @@ namespace Slumber.Agent.Windows
             _settingsService = new SettingsService();
             _settings = _settingsService.LoadSettings();
             _startupService = new StartupService();
+            _lanService = new SlumberLanService(BuildServiceIdentity);
 
             _idleThreshold = TimeSpan.FromSeconds(_settings.IdleThresholdSeconds);
             _promptCooldown = TimeSpan.FromSeconds(_settings.PromptCooldownSeconds);
@@ -70,6 +75,7 @@ namespace Slumber.Agent.Windows
 
             _monitoringTimer.Tick += MonitoringTimer_Tick;
             _monitoringTimer.Start();
+            _lanService.Start();
         }
         private void InitializeTrayIcon()
         {
@@ -111,6 +117,7 @@ namespace Slumber.Agent.Windows
                 _notifyIcon = null;
             }
 
+            _lanService.Stop();
             Application.Current.Shutdown();
         }
 
@@ -135,6 +142,7 @@ namespace Slumber.Agent.Windows
                 _notifyIcon = null;
             }
 
+            _lanService.Dispose();
             base.OnClosed(e);
         }
 
@@ -228,6 +236,34 @@ namespace Slumber.Agent.Windows
             _promptCooldown = TimeSpan.FromSeconds(_settings.PromptCooldownSeconds);
 
             SettingsStatusTextBlock.Text = "Configuración guardada correctamente.";
+        }
+
+        private SlumberServiceIdentity BuildServiceIdentity()
+        {
+            var hostAddress = Dns.GetHostAddresses(Dns.GetHostName())
+                .FirstOrDefault(address => address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !IPAddress.IsLoopback(address))
+                ?.ToString() ?? "127.0.0.1";
+
+            var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.1.0";
+
+            return new SlumberServiceIdentity
+            {
+                DeviceId = Environment.MachineName.ToLowerInvariant(),
+                DeviceName = Environment.MachineName,
+                Host = hostAddress,
+                Port = SlumberLanService.DefaultPort,
+                ServiceVersion = version,
+                Capabilities = new()
+                {
+                    "audio-monitoring",
+                    "overlay",
+                    "media-pause"
+                },
+                Availability = "available",
+                AudioPlaying = _mediaSessionService.IsAudioPlaying(),
+                IsIdle = _inactivityService.IsIdleFor(TimeSpan.FromSeconds(1)),
+                IdleSeconds = (int)_inactivityService.GetIdleTime().TotalSeconds
+            };
         }
     }
 }

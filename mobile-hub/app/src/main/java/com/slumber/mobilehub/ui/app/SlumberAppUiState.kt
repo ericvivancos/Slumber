@@ -3,6 +3,7 @@ package com.slumber.mobilehub.ui.app
 import com.slumber.mobilehub.domain.model.MobileHubSnapshot
 
 enum class AppDestination(val label: String) {
+    Devices("Dispositivos"),
     Dashboard("Dashboard"),
     History("Historial"),
     Settings("Reglas")

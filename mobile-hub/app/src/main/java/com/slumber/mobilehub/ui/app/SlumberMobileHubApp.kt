@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -27,27 +26,35 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.slumber.mobilehub.domain.model.DeviceConnectionState
+import com.slumber.mobilehub.domain.model.DeviceDiscoveryState
 import com.slumber.mobilehub.domain.model.DeviceStatus
+import com.slumber.mobilehub.domain.model.DeviceType
 import com.slumber.mobilehub.domain.model.EventType
 import com.slumber.mobilehub.domain.model.MobileHubSnapshot
 import com.slumber.mobilehub.domain.model.QuickAction
+import com.slumber.mobilehub.domain.model.QuickActionType
 import com.slumber.mobilehub.domain.model.RiskLevel
 import com.slumber.mobilehub.domain.model.RuleSetting
 import com.slumber.mobilehub.domain.model.SignalReading
 import com.slumber.mobilehub.domain.model.SignalStatus
 import com.slumber.mobilehub.domain.model.SlumberMode
+import com.slumber.mobilehub.domain.model.SlumberServiceEndpoint
 import com.slumber.mobilehub.domain.model.TimelineEvent
 import com.slumber.mobilehub.ui.theme.Aurora
 import com.slumber.mobilehub.ui.theme.DeepNight
@@ -57,23 +64,45 @@ import com.slumber.mobilehub.ui.theme.SignalBlue
 import com.slumber.mobilehub.ui.theme.SlumberMobileHubTheme
 
 @Composable
-fun SlumberMobileHubApp(
-    viewModel: SlumberViewModel = viewModel()
-) {
+fun SlumberMobileHubApp() {
+    val appContext = LocalContext.current.applicationContext
+    val repository = remember(appContext) {
+        SlumberAppContainer.repository(appContext)
+    }
+    val viewModel: SlumberViewModel = viewModel(
+        factory = SlumberViewModelFactory(repository)
+    )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     SlumberMobileHubApp(
         uiState = uiState,
         onSelectDestination = viewModel::selectDestination,
-        onQuickAction = viewModel::onQuickAction
+        onQuickAction = viewModel::onQuickAction,
+        onRefreshDiscovery = viewModel::refreshDiscovery,
+        onLinkDevice = viewModel::linkDevice
     )
+}
+
+private class SlumberViewModelFactory(
+    private val repository: com.slumber.mobilehub.data.SlumberRepository
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(SlumberViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return SlumberViewModel(repository) as T
+        }
+
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
 }
 
 @Composable
 private fun SlumberMobileHubApp(
     uiState: SlumberAppUiState,
     onSelectDestination: (AppDestination) -> Unit,
-    onQuickAction: (com.slumber.mobilehub.domain.model.QuickActionType) -> Unit
+    onQuickAction: (QuickActionType) -> Unit,
+    onRefreshDiscovery: () -> Unit,
+    onLinkDevice: (SlumberServiceEndpoint) -> Unit
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -105,6 +134,16 @@ private fun SlumberMobileHubApp(
                 }
 
                 when (uiState.selectedDestination) {
+                    AppDestination.Devices -> {
+                        item {
+                            DiscoverySection(
+                                discovery = uiState.snapshot.discovery,
+                                onRefreshDiscovery = onRefreshDiscovery,
+                                onLinkDevice = onLinkDevice
+                            )
+                        }
+                    }
+
                     AppDestination.Dashboard -> {
                         item {
                             DeviceSection(devices = uiState.snapshot.devices)
@@ -237,6 +276,121 @@ private fun NavigationSection(
 }
 
 @Composable
+private fun DiscoverySection(
+    discovery: DeviceDiscoveryState,
+    onRefreshDiscovery: () -> Unit,
+    onLinkDevice: (SlumberServiceEndpoint) -> Unit
+) {
+    SectionCard(title = "Buscar dispositivos") {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Button(
+                onClick = onRefreshDiscovery,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                enabled = !discovery.isScanning
+            ) {
+                Text(
+                    text = if (discovery.isScanning) "Escaneando LAN..." else "Escanear red local"
+                )
+            }
+
+            Text(
+                text = discovery.statusMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            discovery.linkedDevice?.let { linked ->
+                DeviceLinkCard(
+                    title = "PC vinculado",
+                    endpoint = linked,
+                    actionLabel = "Vinculado",
+                    isPrimary = true,
+                    onAction = {}
+                )
+            }
+
+            if (discovery.discoveredDevices.isEmpty()) {
+                Text(
+                    text = "Cuando un PC ejecute Slumber Service en esta red, aparecera aqui.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                discovery.discoveredDevices.forEach { endpoint ->
+                    DeviceLinkCard(
+                        title = endpoint.deviceName,
+                        endpoint = endpoint,
+                        actionLabel = if (endpoint.isLinked) "Vinculado" else "Vincular",
+                        isPrimary = endpoint.isLinked,
+                        onAction = { onLinkDevice(endpoint) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceLinkCard(
+    title: String,
+    endpoint: SlumberServiceEndpoint,
+    actionLabel: String,
+    isPrimary: Boolean,
+    onAction: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "${endpoint.host}:${endpoint.port}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Version ${endpoint.serviceVersion} · ${endpoint.availability}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Capacidades: ${endpoint.capabilities.joinToString()}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onAction,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !endpoint.isLinked,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isPrimary) {
+                        MaterialTheme.colorScheme.secondary
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(text = actionLabel)
+            }
+        }
+    }
+}
+
+@Composable
 private fun DeviceSection(devices: List<DeviceStatus>) {
     SectionCard(title = "Dispositivos") {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -264,7 +418,7 @@ private fun SignalsSection(signals: List<SignalReading>) {
 @Composable
 private fun ActionsSection(
     actions: List<QuickAction>,
-    onQuickAction: (com.slumber.mobilehub.domain.model.QuickActionType) -> Unit
+    onQuickAction: (QuickActionType) -> Unit
 ) {
     SectionCard(title = "Acciones rapidas") {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -579,11 +733,13 @@ private fun SlumberPreview() {
         Surface(modifier = Modifier.fillMaxSize()) {
             SlumberMobileHubApp(
                 uiState = SlumberAppUiState(
-                    selectedDestination = AppDestination.Dashboard,
+                    selectedDestination = AppDestination.Devices,
                     snapshot = FakePreviewData.snapshot
                 ),
                 onSelectDestination = {},
-                onQuickAction = {}
+                onQuickAction = {},
+                onRefreshDiscovery = {},
+                onLinkDevice = {}
             )
         }
     }
@@ -592,15 +748,15 @@ private fun SlumberPreview() {
 private object FakePreviewData {
     val snapshot = MobileHubSnapshot(
         mode = SlumberMode.MONITORING,
-        summary = "El movil coordina el estado del ecosistema Slumber y prepara la integracion con el PC.",
+        summary = "El movil coordina el estado del ecosistema Slumber y descubre dispositivos en la misma red.",
         confidencePercent = 84,
-        lastAction = "Overlay enviado",
+        lastAction = "Escaneo LAN completado",
         riskLevel = RiskLevel.MEDIUM,
         devices = listOf(
             DeviceStatus(
-                type = com.slumber.mobilehub.domain.model.DeviceType.PC_AGENT,
-                name = "PC Agent",
-                description = "Windows listo para recibir comandos multimedia",
+                type = DeviceType.PC_AGENT,
+                name = "Eric-PC",
+                description = "192.168.1.25:34821 listo para control remoto",
                 state = DeviceConnectionState.CONNECTED
             )
         ),
@@ -610,16 +766,16 @@ private object FakePreviewData {
         ),
         quickActions = listOf(
             QuickAction(
-                type = com.slumber.mobilehub.domain.model.QuickActionType.RUN_SLEEP_CHECK,
-                title = "Simular comprobacion de sueno",
-                description = "Forzar una evaluacion del estado actual."
+                type = QuickActionType.DISCOVER_DEVICES,
+                title = "Buscar dispositivos Slumber",
+                description = "Escanea la LAN y muestra los servicios disponibles."
             )
         ),
         timeline = listOf(
             TimelineEvent(
                 id = "preview-1",
                 title = "PC enlazado",
-                detail = "El preview usa datos estaticos para renderizar la pantalla.",
+                detail = "El preview usa un dispositivo ficticio para renderizar la pantalla.",
                 timestamp = "Ahora",
                 type = EventType.SYSTEM
             )
@@ -629,6 +785,32 @@ private object FakePreviewData {
                 label = "Umbral de inactividad",
                 value = "10 min",
                 description = "Base de ejemplo para el preview."
+            )
+        ),
+        discovery = DeviceDiscoveryState(
+            isScanning = false,
+            statusMessage = "Se detectaron 1 dispositivo(s) disponibles.",
+            linkedDevice = SlumberServiceEndpoint(
+                id = "preview-pc",
+                deviceName = "Eric-PC",
+                host = "192.168.1.25",
+                port = 34821,
+                serviceVersion = "0.1.0",
+                capabilities = listOf("audio-monitoring", "overlay", "media-pause"),
+                availability = "available",
+                isLinked = true
+            ),
+            discoveredDevices = listOf(
+                SlumberServiceEndpoint(
+                    id = "preview-pc",
+                    deviceName = "Eric-PC",
+                    host = "192.168.1.25",
+                    port = 34821,
+                    serviceVersion = "0.1.0",
+                    capabilities = listOf("audio-monitoring", "overlay", "media-pause"),
+                    availability = "available",
+                    isLinked = true
+                )
             )
         )
     )

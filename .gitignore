@@ -3,6 +3,9 @@
 *.user
 *.suo
 
+# Android Studio
+.idea/
+
 # Build
 bin/
 obj/
@@ -10,3 +13,6 @@ obj/
 # OS
 Thumbs.db
 .DS_Store
+
+# Local debug artifacts
+emulator-screen.png
